@@ -1,0 +1,14 @@
+/build/
+/test-build/
+/test-results/
+/bin/
+/obj/
+/.vs/
+/logs/
+/Logs/
+*.pdb
+ClaudeRecoveryTests.exe
+claude-diagnostic-*.json
+cleanup-*.jsonl
+Thumbs.db
+desktop.ini

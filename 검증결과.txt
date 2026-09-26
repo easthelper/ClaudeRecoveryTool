@@ -1,0 +1,59 @@
+PASS: older own-user container eligible
+PASS: current version protected
+PASS: newer/rollback version protected
+PASS: packaged service protected
+PASS: different user protected
+PASS: unknown installed package protected
+PASS: malformed container name protected
+PASS: other publisher protected
+PASS: other login session protected
+PASS: critical process protected
+PASS: development server description
+PASS: scan finds both stale members
+PASS: selection stops only the approved process
+PASS: unselected and new processes preserved
+PASS: cleanup audit persisted
+PASS: forged/unshown row rejected
+PASS: package drift before stop aborts
+PASS: package drift does not terminate any process
+PASS: package drift during batch stops further cleanup
+PASS: access denied is incomplete, never healthy
+PASS: reused PID rejected at stop
+PASS: saved diagnostic excludes raw command line
+PASS: current-version cleanup rejected even if UI eligibility is tampered
+PASS: current-version guard leaves all processes untouched
+PASS: bulk cleanup terminates every approved stale member
+PASS: bulk cleanup preserves current-version member
+PASS: isolated real Win32 job created with two harmless test children
+PASS: native job membership enumerated
+PASS: native creation-time mismatch blocked
+PASS: creation-time rejection leaves process alive
+PASS: native nonmember termination blocked
+PASS: unrelated test process remains alive
+PASS: native other-session guard blocked
+PASS: native selected member terminated and waited
+PASS: native unselected and unrelated processes preserved
+PASS: native remaining member terminated
+PASS: native job empty after cleanup
+PASS: live read-only enumeration is scoped to Claude jobs
+PASS: UI shows stale candidates and enables batch cleanup
+PASS: UI requires checkbox selection for selective cleanup
+PASS: UI select-all checks only eligible rows
+PASS: UI can show protected current version
+PASS: UI access-denied state cannot claim healthy or clean
+PASS: UI healthy state disables cleanup
+PASS: empty stale container is visible as unresolved, not healthy
+RESULT: 45 checks passed
+
+Live validation (read-only):
+{
+  "CheckedAt": "2026-09-26T16:56:39.0618957+09:00",
+  "ExitCode": 0,
+  "Version": "2.9939.2.0",
+  "Incomplete": false,
+  "ContainerCount": 2,
+  "CandidateCount": 0,
+  "ProtectedProcessCount": 12
+}
+The live Claude and user development processes were not terminated by the validation.
+The UI preview uses synthetic test data.
