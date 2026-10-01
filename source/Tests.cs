@@ -95,7 +95,12 @@ namespace ClaudeRecovery {
             report=service.Stop(shown,shown.Candidates,outputDirectory);
             Check(fake.Stopped.Count==1 && report.Outcomes.Last().Failed,"package drift during batch stops further cleanup");
             fake=Two(); fake.DenyMembers=true; shown=new RecoveryService(fake,false).Scan();
-            Check(shown.Incomplete && shown.Candidates.Count==0,"access denied is incomplete, never healthy");
+            Check(shown.Incomplete && shown.CleanupBlocked && shown.Candidates.Count==0,"access denied is incomplete, never healthy");
+            fake=Two(); service=new RecoveryService(fake,false); shown=service.Scan();
+            shown.Containers[0].Error="test: partial membership failure";
+            Check(shown.Candidates.Count==2 && shown.CleanupBlocked,"partial safety-critical failure preserves display candidates but blocks cleanup");
+            Reject(()=>service.Stop(shown,shown.Candidates,outputDirectory),"service rejects cleanup from safety-blocked snapshot");
+            Check(fake.Stopped.Count==0,"safety-blocked snapshot terminates nothing");
             fake=Two(); service=new RecoveryService(fake,false); shown=service.Scan();
             fake.Processes[20001].CreatedFileTime++;
             report=service.Stop(shown,new [] {shown.Processes[0]},outputDirectory);
@@ -153,6 +158,11 @@ namespace ClaudeRecovery {
                 form.TestCheckAll(); Check(form.TestSelectedEnabled,"UI select-all checks only eligible rows");
                 form.TestShowProtected(); Check(form.TestVisibleCount==3,"UI can show protected current version");
                 form.TestCheckAll();
+                var blockedSnapshot=new RecoveryService(fake,false).Scan();
+                blockedSnapshot.Containers.First(j=>j.IsOld).Error="test: partial membership failure";
+                form.DisplaySnapshot(blockedSnapshot); form.TestCheckAll();
+                Check(form.TestSummary.Contains("실패") && !form.TestBulkEnabled && !form.TestSelectedEnabled,"UI disables cleanup when safety-critical scan data is incomplete");
+                form.DisplaySnapshot(snapshot); form.TestShowProtected(); form.TestCheckAll();
                 form.StartPosition=FormStartPosition.Manual; form.Location=new Point(-20000,-20000); form.ShowInTaskbar=false; form.Show(); Application.DoEvents();
                 using(var bitmap=new Bitmap(form.Width,form.Height)) { form.DrawToBitmap(bitmap,new Rectangle(Point.Empty,form.Size)); bitmap.Save(Path.Combine(outputDirectory,"ui-candidates.png"),System.Drawing.Imaging.ImageFormat.Png); }
                 fake.DenyMembers=true; form.DisplaySnapshot(new RecoveryService(fake,false).Scan());
