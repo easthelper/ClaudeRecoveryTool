@@ -94,7 +94,11 @@ namespace ClaudeRecovery {
                 uint returned;
                 if(!QueryInformationJobObject(job,3,buffer,size,out returned)) throw new Win32Exception(Marshal.GetLastWin32Error(),"소속 프로세스 조회 실패");
                 int assigned=Marshal.ReadInt32(buffer,0), count=Marshal.ReadInt32(buffer,4);
-                if(count<0 || count>(size-8)/IntPtr.Size || assigned>count) throw new InvalidOperationException("프로세스 목록이 변경되었거나 불완전합니다. 다시 검사하세요.");
+                int capacity=(size-8)/IntPtr.Size;
+                if(assigned<0 || count<0 || assigned>capacity || count>capacity) throw new InvalidOperationException("프로세스 목록이 버퍼 범위를 초과했습니다. 다시 검사하세요.");
+                // NumberOfProcessIdsInList defines the valid entries returned by this call.
+                // During process exit Windows can transiently report assigned > returned count;
+                // treating that as corruption causes false failures after successful cleanup.
                 var ids=new List<int>();
                 for(int i=0;i<count;i++) ids.Add(checked((int)Marshal.ReadIntPtr(buffer,8+i*IntPtr.Size).ToInt64()));
                 return ids;
