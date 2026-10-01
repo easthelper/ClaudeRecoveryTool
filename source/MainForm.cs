@@ -147,7 +147,8 @@ namespace ClaudeRecovery {
         void UpdateActions() {
             int count=CheckedRows().Count;
             selectedStop.Text="선택 항목 종료"+(count>0?" ("+count+")":"");
-            selectedStop.Enabled=!busy && count>0; bulkStop.Enabled=!busy && snapshot!=null && snapshot.Candidates.Count>0;
+            bool cleanupAllowed=snapshot!=null && !snapshot.CleanupBlocked;
+            selectedStop.Enabled=!busy && cleanupAllowed && count>0; bulkStop.Enabled=!busy && cleanupAllowed && snapshot.Candidates.Count>0;
             bulkStop.BackColor=bulkStop.Enabled?Color.FromArgb(255,242,230):Color.FromArgb(235,239,242);
             bulkStop.ForeColor=bulkStop.Enabled?Color.FromArgb(135,63,22):Muted;
             selectedStop.BackColor=selectedStop.Enabled?Color.White:Color.FromArgb(235,239,242);
