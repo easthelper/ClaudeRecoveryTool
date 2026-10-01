@@ -137,7 +137,12 @@ namespace ClaudeRecovery {
                     Check(Native.TerminateVerified(job,one,one.SessionId)=="종료 확인" && first.WaitForExit(3000),"native selected member terminated and waited");
                     Check(!second.HasExited && !outsider.HasExited,"native unselected and unrelated processes preserved");
                     Check(Native.TerminateVerified(job,two,two.SessionId)=="종료 확인" && second.WaitForExit(3000),"native remaining member terminated");
-                    Check(Native.Members(job).Count==0,"native job empty after cleanup");
+                    // A terminated process object can remain visible to the Job while test-owned
+                    // process handles are still open. Release those handles before checking eventual emptiness.
+                    first.Dispose(); second.Dispose();
+                    bool empty=false;
+                    for(int retry=0;retry<20 && !empty;retry++) { empty=Native.Members(job).Count==0; if(!empty) Thread.Sleep(25); }
+                    Check(empty,"native job empty after terminated process handles are released");
                 } finally {
                     foreach(var child in new [] {first,second,outsider}) try { if(!child.HasExited) { child.Kill(); child.WaitForExit(3000); } } catch { }
                 }
