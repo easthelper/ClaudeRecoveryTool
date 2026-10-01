@@ -36,6 +36,9 @@ namespace ClaudeRecovery {
         public List<string> Errors=new List<string>();
         public List<ProcessRow> Candidates { get { return Processes.Where(p=>p.Eligible).ToList(); } }
         public bool Incomplete { get { return Errors.Count>0 || Containers.Any(j=>!String.IsNullOrEmpty(j.Error)); } }
+        // Only failures that undermine container/process membership validation block cleanup.
+        // WMI enrichment failures still mark the scan incomplete, but do not weaken termination checks.
+        public bool CleanupBlocked { get { return Installed==null || Containers.Any(j=>!String.IsNullOrEmpty(j.Error)); } }
     }
     internal sealed class StopOutcome {
         public int Pid;
@@ -192,6 +195,7 @@ namespace ClaudeRecovery {
         // No destructive CLI is exposed. The GUI passes only rows shown in its confirmed snapshot.
         public StopReport Stop(Snapshot shown, IList<ProcessRow> selected, string logDirectory) {
             if(shown==null || shown.Installed==null || selected.Count==0) throw new InvalidOperationException("종료할 대상을 다시 검사하세요.");
+            if(shown.CleanupBlocked) throw new InvalidOperationException("안전 확인에 필요한 일부 조회가 실패하여 종료를 차단했습니다. 다시 검사하세요.");
             if(system.UserSid!=shown.UserSid || system.SessionId!=shown.SessionId) throw new InvalidOperationException("Windows 사용자 또는 로그인 세션이 바뀌었습니다.");
             var current=system.InstalledPackage();
             if(current.FullName!=shown.Installed.FullName || current.Status!="Ok") throw new InvalidOperationException("검사 후 Claude 설치 버전이 바뀌었습니다. 다시 검사하세요.");
