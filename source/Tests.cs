@@ -95,7 +95,12 @@ namespace ClaudeRecovery {
             report=service.Stop(shown,shown.Candidates,outputDirectory);
             Check(fake.Stopped.Count==1 && report.Outcomes.Last().Failed,"package drift during batch stops further cleanup");
             fake=Two(); fake.DenyMembers=true; shown=new RecoveryService(fake,false).Scan();
-            Check(shown.Incomplete && shown.Candidates.Count==0,"access denied is incomplete, never healthy");
+            Check(shown.Incomplete && shown.CleanupBlocked && shown.Candidates.Count==0,"access denied is incomplete, never healthy");
+            fake=Two(); service=new RecoveryService(fake,false); shown=service.Scan();
+            shown.Containers[0].Error="test: partial membership failure";
+            Check(shown.Candidates.Count==2 && shown.CleanupBlocked,"partial safety-critical failure preserves display candidates but blocks cleanup");
+            Reject(()=>service.Stop(shown,shown.Candidates,outputDirectory),"service rejects cleanup from safety-blocked snapshot");
+            Check(fake.Stopped.Count==0,"safety-blocked snapshot terminates nothing");
             fake=Two(); service=new RecoveryService(fake,false); shown=service.Scan();
             fake.Processes[20001].CreatedFileTime++;
             report=service.Stop(shown,new [] {shown.Processes[0]},outputDirectory);
@@ -132,7 +137,12 @@ namespace ClaudeRecovery {
                     Check(Native.TerminateVerified(job,one,one.SessionId)=="종료 확인" && first.WaitForExit(3000),"native selected member terminated and waited");
                     Check(!second.HasExited && !outsider.HasExited,"native unselected and unrelated processes preserved");
                     Check(Native.TerminateVerified(job,two,two.SessionId)=="종료 확인" && second.WaitForExit(3000),"native remaining member terminated");
-                    Check(Native.Members(job).Count==0,"native job empty after cleanup");
+                    // A terminated process object can remain visible to the Job while test-owned
+                    // process handles are still open. Release those handles before checking eventual emptiness.
+                    first.Dispose(); second.Dispose();
+                    bool empty=false;
+                    for(int retry=0;retry<20 && !empty;retry++) { empty=Native.Members(job).Count==0; if(!empty) Thread.Sleep(25); }
+                    Check(empty,"native job empty after terminated process handles are released");
                 } finally {
                     foreach(var child in new [] {first,second,outsider}) try { if(!child.HasExited) { child.Kill(); child.WaitForExit(3000); } } catch { }
                 }
@@ -153,6 +163,11 @@ namespace ClaudeRecovery {
                 form.TestCheckAll(); Check(form.TestSelectedEnabled,"UI select-all checks only eligible rows");
                 form.TestShowProtected(); Check(form.TestVisibleCount==3,"UI can show protected current version");
                 form.TestCheckAll();
+                var blockedSnapshot=new RecoveryService(fake,false).Scan();
+                blockedSnapshot.Containers.First(j=>j.IsOld).Error="test: partial membership failure";
+                form.DisplaySnapshot(blockedSnapshot); form.TestCheckAll();
+                Check(form.TestSummary.Contains("실패") && !form.TestBulkEnabled && !form.TestSelectedEnabled,"UI disables cleanup when safety-critical scan data is incomplete");
+                form.DisplaySnapshot(snapshot); form.TestShowProtected(); form.TestCheckAll();
                 form.StartPosition=FormStartPosition.Manual; form.Location=new Point(-20000,-20000); form.ShowInTaskbar=false; form.Show(); Application.DoEvents();
                 using(var bitmap=new Bitmap(form.Width,form.Height)) { form.DrawToBitmap(bitmap,new Rectangle(Point.Empty,form.Size)); bitmap.Save(Path.Combine(outputDirectory,"ui-candidates.png"),System.Drawing.Imaging.ImageFormat.Png); }
                 fake.DenyMembers=true; form.DisplaySnapshot(new RecoveryService(fake,false).Scan());
